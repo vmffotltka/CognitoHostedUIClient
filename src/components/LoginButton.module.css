@@ -1,0 +1,26 @@
+/* src/LoginButton.module.css */
+
+.button {
+  font-weight: bold;
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px; /* rounded-full */
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  font-size: 1rem;
+}
+
+.button:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
+}
+
+.signInButton {
+  background-color: #4f46e5; /* indigo-600 */
+  color: white;
+}
+
+.signOutButton {
+  background-color: #dc2626; /* red-600 */
+  color: white;
+}
