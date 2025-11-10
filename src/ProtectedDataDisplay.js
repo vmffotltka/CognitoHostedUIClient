@@ -36,10 +36,9 @@ function ProtectedDataDisplay() {
       }
     };
     
-    // 4. (중요) '느긋하게' 확인을 시작합니다.
     const timer = setTimeout(() => {
       fetchProtectedData();
-    }, 1000); // 1초 뒤에 체크 시작 (LoginButton보다 늦게)
+    }, 1000);
 
     return () => { 
       isMounted = false; 

@@ -1,37 +1,39 @@
 // src/LoginButton.js
 
 import React, { useState, useEffect } from 'react';
-// 1. App.module.css의 스타일도 가져와서 병합합니다.
 import appStyles from '../App.module.css';
 import btnStyles from './LoginButton.module.css';
-// 2. 필요한 모든 인증 함수를 여기서 직접 임포트
 import { fetchAuthSession, signInWithRedirect, signOut } from 'aws-amplify/auth'; 
 
-// 3. App.js와 LoginButton.js의 스타일을 합칩니다.
+// 스타일 병합
 const styles = { ...appStyles, ...btnStyles };
 
-// 4. props를 받지 않습니다.
 function LoginButton() {
-  // 5. 스스로 상태를 관리합니다.
+  // 인증 상태를 관리하는 로컬 상태
   const [authState, setAuthState] = useState({
     isLoading: true,
     isSignedIn: false,
     username: null
   });
 
-  // 6. 컴포넌트가 로드될 때 1번만 인증 상태를 확인합니다.
+  // 컴포넌트가 마운트될 때 인증 상태 확인
   useEffect(() => {
     let isMounted = true;
     const checkAuth = async () => {
       try {
-        // 7. (핵심) 'forceRefresh'로 '만료된 토큰'을 갱신 시도
+        // 인증 세션을 강제로 새로고침하여 가져오기
         const session = await fetchAuthSession({ forceRefresh: true });
+        
+        // ID 토큰 추출
         const idToken = session.tokens?.idToken?.toString();
+        
+        // 유효한 세션이 없으면 오류 발생
         if (!idToken) throw new Error('No valid session');
-        // JWT payload 파싱 (username/claims 표시에 사용)
+        
+        // ID 토큰에서 페이로드 추출
         const payload = JSON.parse(atob(idToken.split('.')[1]));
 
-        // 8. (성공 시) 로그인 상태로 UI 변경
+        // 상태 업데이트
         if (isMounted) {
           setAuthState({
             isLoading: false,
@@ -40,44 +42,38 @@ function LoginButton() {
           });
         }
       } catch (error) {
-        // 9. (실패 시) 로그아웃 상태로 UI 변경
-        if (isMounted) {
+        if (isMounted) { // 오류 시 상태를 비로그인으로 설정
           setAuthState({ isLoading: false, isSignedIn: false, username: null });
         }
       }
     };
 
-    // 10. (중요) '느긋하게' 확인을 시작합니다.
-    //     이것이 'CSS 추가 전'에 잘 됐던 이유(타이밍)입니다.
+    // 인증 상태 확인을 0.5초 지연 후 실행
     const timer = setTimeout(() => {
       checkAuth();
-    }, 500); // 0.5초 뒤에 체크 시작
+    }, 500);
 
+    // 정리 함수
     return () => { 
       isMounted = false; 
-      clearTimeout(timer); // 컴포넌트 제거 시 타이머도 제거
+      clearTimeout(timer);
     };
-  }, []); // 의존성 배열은 비워둡니다.
+  }, []);
 
-  // [!!!] 11. (핵심) '좀비 세션'을 강제 청소하는 로그인 핸들러 [!!!]
   const handleSignIn = async () => {
-    try {
+    try { // 로그인 시도
       await signInWithRedirect();
-    } catch (error) {
-      // '좀비 세션' 오류(UserAlreadyAuthenticated)가 나면
+    } catch (error) { // 오류 처리
       if (error.name === 'UserAlreadyAuthenticatedException') {
          console.warn("좀비 세션 감지! 강제 로그아웃 및 localStorage 청소를 실행합니다...");
          
-         // 1. localStorage를 '수동'으로 먼저 청소
-         localStorage.clear(); 
+         localStorage.clear(); // localStorage 청소
          
          try {
-           // 2. Amplify의 공식 로그아웃도 호출
            await signOut();
-         } catch (signOutError) { /* (무시) */ }
+         } catch (signOutError) {} // 로그아웃 시도 중 오류 무시
          
-         // 3. 깨끗한 상태에서 다시 로그인 시도
-         await signInWithRedirect();
+         await signInWithRedirect(); // 다시 로그인 시도
          
       } else {
         console.error("로그인 시도 중 다른 오류 발생:", error);
@@ -86,15 +82,15 @@ function LoginButton() {
   };
 
   const handleSignOut = async () => {
-    try {
+    try { // 로그아웃 시도
       await signOut();
       setAuthState({ isLoading: false, isSignedIn: false, username: null });
-    } catch (error) {
+    } catch (error) { // 오류 처리
       console.error('Error signing out:', error);
     }
   };
 
-  // 12. 상태에 따라 UI 렌더링
+  // 렌더링 로직
   if (authState.isLoading) {
     return (
       <button className={`${styles.button} ${styles.signInButton}`} disabled>
@@ -103,6 +99,7 @@ function LoginButton() {
     );
   }
 
+  // 로그인 상태에 따른 버튼 및 메시지 표시
   if (authState.isSignedIn) {
     return (
       <>
